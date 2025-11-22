@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitea
+  namespace: gitea
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitea
+  template:
+    metadata:
+      labels:
+        app: gitea
+    spec:
+      containers:
+      - name: gitea
+        image: gitea/gitea:latest
+        ports:
+        - containerPort: 3000
+        env:
+        # PostgreSQL Database Configuration
+        - name: GITEA__database__DB_TYPE
+          value: "postgres"
+        - name: GITEA__database__HOST
+          value: postgres.postgres.svc.cluster.local:5432
+        - name: GITEA__database__NAME
+          value: "gitea"
+        - name: GITEA__database__USER
+          value: "postgres"
+        - name: GITEA__database__PASSWD
+          value: "postgres"
+        # Redis Cache Configuration
+        - name: GITEA__cache__ENABLED
+          value: "true"
+        - name: GITEA__cache__ADAPTER
+          value: "redis"
+        - name: GITEA__cache__HOST
+          value: redis.redis.svc.cluster.local:6379
+        # Gitea URL Configuration
+        - name: GITEA__server__ROOT_URL
+          value: "http://localhost:30081"
+

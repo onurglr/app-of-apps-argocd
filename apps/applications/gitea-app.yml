@@ -1,20 +1,21 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: nginx-app
+  name: gitea-app
   namespace: argocd
 spec:
   project: default
   source:
     repoURL: https://github.com/onurglr/app-of-apps-argocd.git
     targetRevision: HEAD
-    path: apps/manifests/nginx
+    path: apps/manifests/gitea
   destination:
     server: https://kubernetes.default.svc
-    namespace: nginx
+    namespace: gitea
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+

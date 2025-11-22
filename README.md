@@ -1,50 +1,35 @@
 # App of Apps - ArgoCD
 
-This project implements the ArgoCD App of Apps pattern to centrally manage multiple Kubernetes applications.
+This project implements the ArgoCD App of Apps pattern to manage multiple Kubernetes applications with shared dependencies.
 
 ## 📋 Table of Contents
 
-- [Project Structure](#project-structure)
+- [Overview](#overview)
 - [Architecture](#architecture)
+- [Project Structure](#project-structure)
+- [Applications](#applications)
+- [Dependencies](#dependencies)
 - [Installation](#installation)
 - [Usage](#usage)
-- [Applications](#applications)
 - [Adding New Applications](#adding-new-applications)
 - [Verification](#verification)
 - [Contributing](#contributing)
 
-## 📁 Project Structure
+## 🎯 Overview
 
-```
-app-of-apps-argocd/
-├── root-application.yaml          # Root (parent) application - manually applied to ArgoCD
-├── apps/
-│   ├── applications/              # Child application YAML files (ArgoCD Application objects)
-│   │   ├── nginx-app.yml         # Nginx child application
-│   │   ├── redis-app.yml         # Redis child application
-│   │   └── guestbook-app.yml     # Guestbook child application
-│   │
-│   └── manifests/                 # Manifest folders for all applications
-│       ├── nginx/                 # Nginx manifests
-│       │   ├── deployment.yml
-│       │   └── service.yml
-│       ├── redis/                 # Redis manifests
-│       │   ├── deployment.yml
-│       │   └── service.yml
-│       └── guestbook/             # Guestbook manifests
-│           ├── deployment.yml
-│           └── service.yml
-```
+This project uses the **App of Apps** pattern to centrally manage:
+- **Main Applications**: Ghost (blog platform) and Gitea (git hosting)
+- **Shared Dependencies**: PostgreSQL (database) and Redis (cache)
+
+All applications are deployed using Docker Hub images and managed through GitOps principles.
 
 ## 🏗️ Architecture
 
 ### App of Apps Pattern
 
-This project uses the **App of Apps** pattern:
-
 1. **Root Application** (`root-application.yaml`)
    - Manually applied to ArgoCD
-   - Manages all child applications in the `apps/applications/` folder
+   - Manages all child applications in `apps/applications/` folder
    - Each child application file creates an ArgoCD Application object
 
 2. **Child Applications** (`apps/applications/*.yml`)
@@ -56,16 +41,97 @@ This project uses the **App of Apps** pattern:
    - Kubernetes manifest files for each application
    - Deployment, Service, ConfigMap, etc.
 
-### Namespace Structure
+### System Architecture
 
-- **nginx** namespace → Nginx web server
-- **redis** namespace → Redis cache (shared, can be used by multiple applications)
-- **guestbook** namespace → Guestbook application (connects to Redis)
+```
+┌─────────────┐     ┌─────────────┐
+│   Ghost     │     │   Gitea     │
+│  (Blog)     │     │ (Git Host)  │
+│ Port: 30080 │     │ Port: 30081 │
+└──────┬──────┘     └──────┬──────┘
+       │                   │
+       ├───────────┬───────┤
+       │           │       │
+┌──────▼──────┐ ┌─▼───────▼──┐
+│ PostgreSQL  │ │   Redis     │
+│ (Database)  │ │  (Cache)    │
+│ Port: 5432  │ │ Port: 6379  │
+└─────────────┘ └─────────────┘
+```
 
-### Dependencies
+## 📁 Project Structure
 
-- **Guestbook** → Connects to Redis (`redis.redis.svc.cluster.local:6379`)
-- Uses cross-namespace access (different namespaces)
+```
+app-of-apps-argocd/
+├── root-application.yaml          # Root (parent) application - manually applied to ArgoCD
+├── apps/
+│   ├── applications/              # Child application YAML files (ArgoCD Application objects)
+│   │   ├── ghost-app.yml         # Ghost blog platform
+│   │   ├── gitea-app.yml         # Gitea git hosting
+│   │   ├── postgresql-app.yml    # PostgreSQL database (shared)
+│   │   └── redis-app.yml         # Redis cache (shared)
+│   │
+│   └── manifests/                 # Manifest folders for all applications
+│       ├── ghost/                 # Ghost manifests
+│       │   ├── deployment.yml
+│       │   └── service.yml
+│       ├── gitea/                 # Gitea manifests
+│       │   ├── deployment.yml
+│       │   └── service.yml
+│       ├── postgresql/            # PostgreSQL manifests
+│       │   ├── deployment.yml
+│       │   ├── service.yml
+│       │   └── configmap.yml     # Init script for multiple databases
+│       └── redis/                 # Redis manifests
+│           ├── deployment.yml
+│           └── service.yml
+```
+
+## 📱 Applications
+
+### Ghost (Blog Platform)
+
+- **Namespace:** `ghost`
+- **Port:** 2368 (NodePort: 30080)
+- **Image:** `ghost:latest`
+- **Access:** `http://localhost:30080`
+- **Dependencies:**
+  - PostgreSQL (database: `ghost`)
+  - Redis (cache)
+
+### Gitea (Git Hosting)
+
+- **Namespace:** `gitea`
+- **Port:** 3000 (NodePort: 30081)
+- **Image:** `gitea/gitea:latest`
+- **Access:** `http://localhost:30081`
+- **Dependencies:**
+  - PostgreSQL (database: `gitea`)
+  - Redis (cache)
+
+## 🔗 Dependencies
+
+### PostgreSQL (Shared Database)
+
+- **Namespace:** `postgres`
+- **Port:** 5432
+- **Image:** `postgres:alpine`
+- **Databases:**
+  - `ghost` - Used by Ghost
+  - `gitea` - Used by Gitea
+- **Configuration:**
+  - Init script in ConfigMap creates all databases automatically
+  - Access: `postgres.postgres.svc.cluster.local:5432`
+
+### Redis (Shared Cache)
+
+- **Namespace:** `redis`
+- **Port:** 6379
+- **Image:** `redis:alpine`
+- **Used by:**
+  - Ghost (cache)
+  - Gitea (cache)
+- **Access:** `redis.redis.svc.cluster.local:6379`
 
 ## 🚀 Installation
 
@@ -74,6 +140,7 @@ This project uses the **App of Apps** pattern:
 - Kubernetes cluster
 - ArgoCD installed and running
 - Git repository access
+- `kubectl` configured
 
 ### Steps
 
@@ -89,51 +156,78 @@ This project uses the **App of Apps** pattern:
    ```
 
 3. **ArgoCD will automatically:**
-   - Read all child applications from the `apps/applications/` folder
+   - Read all child applications from `apps/applications/` folder
    - Deploy each one
    - Read manifest files and start the applications
+   - Create namespaces if needed
 
-## 📱 Applications
+## 📖 Usage
 
-### Nginx
-- **Namespace:** `nginx`
-- **Port:** 80
-- **Type:** Web server
-- **Image:** `nginx:alpine`
+### Access Applications
 
-### Redis
-- **Namespace:** `redis` (shared)
-- **Port:** 6379
-- **Type:** Cache/Database
-- **Image:** `redis:alpine`
-- **Usage:** Can be used by multiple applications
+- **Ghost:** `http://localhost:30080`
+- **Gitea:** `http://localhost:30081`
 
-### Guestbook
-- **Namespace:** `guestbook`
-- **Port:** 80
-- **Type:** Web application
-- **Image:** `gcr.io/google-samples/gb-frontend:v5`
-- **Dependency:** Redis (`redis.redis.svc.cluster.local:6379`)
+### Check Application Status
 
-## 🔧 Adding New Applications
+```bash
+# List all applications
+kubectl get applications -n argocd
 
-1. **Create a child application file:**
+# Check specific application
+kubectl get application ghost-app -n argocd
+kubectl get application gitea-app -n argocd
+
+# Check pods
+kubectl get pods -n ghost
+kubectl get pods -n gitea
+kubectl get pods -n postgres
+kubectl get pods -n redis
+```
+
+### View Logs
+
+```bash
+# Ghost logs
+kubectl logs -n ghost -l app=ghost
+
+# Gitea logs
+kubectl logs -n gitea -l app=gitea
+
+# PostgreSQL logs
+kubectl logs -n postgres -l app=postgres
+
+# Redis logs
+kubectl logs -n redis -l app=redis
+```
+
+## ➕ Adding New Applications
+
+To add a new application that uses PostgreSQL:
+
+1. **Add database to ConfigMap:**
    ```yaml
-   # apps/applications/my-app.yml
+   # apps/manifests/postgresql/configmap.yml
+   CREATE DATABASE new-app;
+   ```
+
+2. **Create child application:**
+   ```yaml
+   # apps/applications/new-app.yml
    apiVersion: argoproj.io/v1alpha1
    kind: Application
    metadata:
-     name: my-app
+     name: new-app
      namespace: argocd
    spec:
      project: default
      source:
        repoURL: https://github.com/onurglr/app-of-apps-argocd.git
        targetRevision: HEAD
-       path: apps/manifests/my-app
+       path: apps/manifests/new-app
      destination:
        server: https://kubernetes.default.svc
-       namespace: my-app
+       namespace: new-app
      syncPolicy:
        automated:
          prune: true
@@ -142,48 +236,103 @@ This project uses the **App of Apps** pattern:
          - CreateNamespace=true
    ```
 
-2. **Create the manifest folder:**
-   ```bash
-   mkdir -p apps/manifests/my-app
+3. **Create manifest files:**
+   - `apps/manifests/new-app/deployment.yml`
+   - `apps/manifests/new-app/service.yml`
+
+4. **Add PostgreSQL connection in deployment:**
+   ```yaml
+   env:
+   - name: DATABASE_HOST
+     value: postgres.postgres.svc.cluster.local
+   - name: DATABASE_PORT
+     value: "5432"
+   - name: DATABASE_NAME
+     value: "new-app"
    ```
 
-3. **Add manifest files:**
-   - `apps/manifests/my-app/deployment.yml`
-   - `apps/manifests/my-app/service.yml`
-
-4. **Commit to Git:**
+5. **Commit and push:**
    ```bash
    git add .
-   git commit -m "Add my-app"
+   git commit -m "Add new-app"
    git push
    ```
 
-5. **ArgoCD will automatically deploy the new application!**
+6. **ArgoCD will automatically deploy!**
 
 ## 🔍 Verification
 
 ### Via ArgoCD UI
-- Navigate to ArgoCD UI
-- View the root application
-- Check child applications and their status
+
+1. Navigate to ArgoCD UI
+2. View the root application (`root-app`)
+3. Check child applications and their status
+4. Verify all applications are "Healthy" and "Synced"
 
 ### Via kubectl
+
 ```bash
-# List all applications
+# Check all applications
 kubectl get applications -n argocd
 
-# Check a specific application
-kubectl get application nginx-app -n argocd
+# Check application details
+kubectl describe application ghost-app -n argocd
+
+# Check services
+kubectl get svc -A
+
+# Check all pods
+kubectl get pods -A
+```
+
+## 🔧 Troubleshooting
+
+### Application not syncing
+
+```bash
+# Check application status
+kubectl get application <app-name> -n argocd
+
+# Manually sync
+argocd app sync <app-name>
+
+# Check logs
+kubectl logs -n argocd -l app.kubernetes.io/name=argocd-application-controller
+```
+
+### Database connection issues
+
+```bash
+# Check PostgreSQL pod
+kubectl get pods -n postgres
+
+# Check PostgreSQL logs
+kubectl logs -n postgres -l app=postgres
+
+# Test connection from Ghost pod
+kubectl exec -it -n ghost <ghost-pod-name> -- sh
+# Inside pod: ping postgres.postgres.svc.cluster.local
+```
+
+### Service not accessible
+
+```bash
+# Check service
+kubectl get svc -n <namespace>
+
+# Check NodePort
+kubectl get svc <service-name> -n <namespace> -o yaml
 
 # Check pods
-kubectl get pods -n nginx
-kubectl get pods -n redis
-kubectl get pods -n guestbook
+kubectl get pods -n <namespace>
 ```
 
 ## 📚 Learning Resources
 
-This project was created for educational purposes. Detailed explanations can be found in each file.
+This project was created for educational purposes. Each file contains detailed comments explaining:
+- What each field does
+- Why specific values were chosen
+- Alternatives and when to use different values
 
 ## 🤝 Contributing
 
@@ -196,3 +345,10 @@ This project was created for educational purposes. Detailed explanations can be 
 ## 📝 License
 
 This project is for educational purposes.
+
+## 🔗 Links
+
+- [ArgoCD Documentation](https://argo-cd.readthedocs.io/)
+- [Kubernetes Documentation](https://kubernetes.io/docs/)
+- [Ghost Documentation](https://ghost.org/docs/)
+- [Gitea Documentation](https://docs.gitea.io/)

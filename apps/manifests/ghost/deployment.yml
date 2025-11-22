@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ghost
+  namespace: ghost
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ghost
+  template:
+    metadata:
+      labels:
+        app: ghost
+    spec:
+      containers:
+      - name: ghost
+        image: ghost:latest
+        ports:
+        - containerPort: 2368
+        env:
+        # PostgreSQL Database Configuration
+        - name: database__client
+          value: "postgres"
+        - name: database__connection__host
+          value: postgres.postgres.svc.cluster.local
+        - name: database__connection__port
+          value: "5432"
+        - name: database__connection__database
+          value: "ghost"
+        - name: database__connection__user
+          value: "postgres"
+        - name: database__connection__password
+          value: "postgres"
+        # Redis Cache Configuration (Optional)
+        - name: redis__host
+          value: redis.redis.svc.cluster.local
+        - name: redis__port
+          value: "6379"
+        # Ghost URL Configuration
+        - name: url
+          value: "http://localhost:30080"
+
