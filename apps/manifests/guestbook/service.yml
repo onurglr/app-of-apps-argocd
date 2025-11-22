@@ -9,5 +9,6 @@ spec:
   ports:
   - port: 80
     targetPort: 80
-  type: ClusterIP
+    nodePort: 30080  # NodePort numarası (30000-32767 arası, 30080 = 80'i hatırlatması için)
+  type: NodePort  # Tarayıcıdan erişmek için NodePort kullanıyoruz
 
