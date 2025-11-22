@@ -9,6 +9,6 @@ spec:
   ports:
   - port: 2368
     targetPort: 2368
-    nodePort: 30080
+    nodePort: 30082
   type: NodePort
 

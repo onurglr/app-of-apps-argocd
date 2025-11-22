@@ -13,6 +13,18 @@ spec:
       labels:
         app: ghost
     spec:
+      initContainers:
+      - name: wait-for-postgres
+        image: postgres:alpine
+        command:
+        - sh
+        - -c
+        - |
+          until pg_isready -h postgres.postgres.svc.cluster.local -p 5432 -U postgres; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+          echo "PostgreSQL is ready!"
       containers:
       - name: ghost
         image: ghost:latest
@@ -39,5 +51,5 @@ spec:
           value: "6379"
         # Ghost URL Configuration
         - name: url
-          value: "http://localhost:30080"
+          value: "http://localhost:30082"
 
