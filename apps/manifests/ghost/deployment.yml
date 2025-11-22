@@ -16,15 +16,16 @@ spec:
       initContainers:
       - name: wait-for-postgres
         image: postgres:alpine
-        command:
-        - sh
-        - -c
-        - |
-          until pg_isready -h postgres.postgres.svc.cluster.local -p 5432 -U postgres; do
-            echo "Waiting for PostgreSQL..."
-            sleep 2
-          done
-          echo "PostgreSQL is ready!"
+        command: ["/bin/sh", "/scripts/wait-for-postgres.sh"]
+        volumeMounts:
+        - name: init-scripts
+          mountPath: /scripts
+      - name: wait-for-redis
+        image: redis:alpine
+        command: ["/bin/sh", "/scripts/wait-for-redis.sh"]
+        volumeMounts:
+        - name: init-scripts
+          mountPath: /scripts
       containers:
       - name: ghost
         image: ghost:latest
@@ -52,4 +53,9 @@ spec:
         # Ghost URL Configuration
         - name: url
           value: "http://localhost:30082"
+      volumes:
+      - name: init-scripts
+        configMap:
+          name: ghost-init
+          defaultMode: 0755
 

@@ -13,6 +13,19 @@ spec:
       labels:
         app: gitea
     spec:
+      initContainers:
+      - name: wait-for-postgres
+        image: postgres:alpine
+        command: ["/bin/sh", "/scripts/wait-for-postgres.sh"]
+        volumeMounts:
+        - name: init-scripts
+          mountPath: /scripts
+      - name: wait-for-redis
+        image: redis:alpine
+        command: ["/bin/sh", "/scripts/wait-for-redis.sh"]
+        volumeMounts:
+        - name: init-scripts
+          mountPath: /scripts
       containers:
       - name: gitea
         image: gitea/gitea:latest
@@ -37,7 +50,14 @@ spec:
           value: "redis"
         - name: GITEA__cache__HOST
           value: redis.redis.svc.cluster.local:6379
-        # Gitea URL Configuration
+        # Gitea Server Configuration
+        - name: GITEA__server__HTTP_PORT
+          value: "3000"
         - name: GITEA__server__ROOT_URL
           value: "http://localhost:30081"
+      volumes:
+      - name: init-scripts
+        configMap:
+          name: gitea-init
+          defaultMode: 0755
 
