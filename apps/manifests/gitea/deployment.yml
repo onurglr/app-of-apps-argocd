@@ -58,7 +58,7 @@ spec:
         - name: GITEA__server__HTTP_PORT
           value: "3000"
         - name: GITEA__server__ROOT_URL
-          value: "http://localhost:30081"
+          value: "http://localhost:3000"
         # Gitea App Configuration
         - name: GITEA__app__INSTALL_LOCK
           value: "true"
