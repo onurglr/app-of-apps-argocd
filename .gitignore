@@ -1,0 +1,56 @@
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Cursor IDE temporary files (but keep .cursor/rules/)
+.cursor/
+!.cursor/rules/
+
+# OS files
+Thumbs.db
+.DS_Store
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Kubernetes secrets (if any)
+*secret*.yaml
+*secret*.yml
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+*.class
+*.jar
+*.war
+*.ear
+
+# Node modules (if using any Node.js tools)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python (if using any Python tools)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+
+# ArgoCD temporary files
+.argocd/
+

@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: podinfo-app
+  namespace: argocd      # ArgoCD bu namespace'te yaşıyor, o yüzden buraya ekliyoruz
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/onurglr/app-of-apps-argocd.git
+    targetRevision: HEAD
+    path: apps/manifests/podinfo  # DİKKAT: Bu klasörü henüz oluşturmadık, birazdan oluşturacağız!
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: podinfo   # Uygulamanın kendisi 'podinfo' namespace'ine kurulacak
+  syncPolicy:
+    automated:
+      prune: true        # Git'ten silersek cluster'dan da silinsin
+      selfHeal: true     # Biri cluster'da elle kurcalarsa ArgoCD düzeltsin
+    syncOptions:
+      - CreateNamespace=true # 'podinfo' namespace'i yoksa otomatik oluştur
