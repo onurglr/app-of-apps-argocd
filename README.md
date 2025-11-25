@@ -145,6 +145,14 @@ kubectl get pods -n ingress-nginx
 - **Podinfo UI:** `http://podinfo.localtest.me:30080`
 - First-time Gitea setup will prompt you to create an admin user
 
+## 📸 Screenshots
+
+![ArgoCD Applications](docs/screenshots/argocd-overview.png)
+
+![Gitea over Ingress](docs/screenshots/gitea-local.png)
+
+![Podinfo over Ingress](docs/screenshots/podinfo-local.png)
+
 ## 📁 Project Structure
 
 ```
