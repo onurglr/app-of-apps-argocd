@@ -372,7 +372,7 @@ This project demonstrates:
 - ✅ Ingress for external access
 - ✅ Simple and understandable structure
 
-## ⚠️ Common Issues
+## Common Issues
 
 ### 1. `nodePort` out of range (3000)
 **Symptoms**
