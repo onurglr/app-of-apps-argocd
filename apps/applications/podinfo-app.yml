@@ -1,17 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: ghost-app
+  name: podinfo-app
   namespace: argocd
 spec:
   project: default
   source:
     repoURL: https://github.com/onurglr/app-of-apps-argocd.git
     targetRevision: HEAD
-    path: apps/manifests/ghost
+    path: apps/manifests/podinfo
   destination:
     server: https://kubernetes.default.svc
-    namespace: ghost
+    namespace: podinfo
   syncPolicy:
     automated:
       prune: true

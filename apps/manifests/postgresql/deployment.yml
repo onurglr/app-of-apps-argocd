@@ -1,33 +1,58 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres
-  namespace: postgres
+  name: postgresql
+  namespace: postgresql
+  labels:
+    app: postgresql
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: postgres
+      app: postgresql
   template:
     metadata:
       labels:
-        app: postgres
+        app: postgresql
     spec:
       containers:
-      - name: postgres
-        image: postgres:alpine
+      - name: postgresql
+        image: postgres:15-alpine
         ports:
         - containerPort: 5432
-        env:
-        - name: POSTGRES_USER
-          value: "postgres"
-        - name: POSTGRES_PASSWORD
-          value: "postgres"
+        envFrom:
+        - configMapRef:
+            name: postgresql-config
         volumeMounts:
-        - name: init-script
-          mountPath: /docker-entrypoint-initdb.d
+        - name: postgresql-storage
+          mountPath: /var/lib/postgresql/data
+        - name: postgresql-config
+          mountPath: /scripts
+          readOnly: true
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - /scripts/health-check.sh
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - /scripts/health-check.sh
+          initialDelaySeconds: 5
+          periodSeconds: 5
       volumes:
-      - name: init-script
+      - name: postgresql-storage
+        emptyDir: {}
+      - name: postgresql-config
         configMap:
-          name: postgres-init
+          name: postgresql-config
+          defaultMode: 0755
 

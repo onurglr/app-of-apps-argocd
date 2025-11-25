@@ -1,354 +1,377 @@
 # App of Apps - ArgoCD
 
-This project implements the ArgoCD App of Apps pattern to manage multiple Kubernetes applications with shared dependencies.
-
-## 📋 Table of Contents
-
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Project Structure](#project-structure)
-- [Applications](#applications)
-- [Dependencies](#dependencies)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Adding New Applications](#adding-new-applications)
-- [Verification](#verification)
-- [Contributing](#contributing)
-
-## 🎯 Overview
-
-This project uses the **App of Apps** pattern to centrally manage:
-- **Main Applications**: Ghost (blog platform) and Gitea (git hosting)
-- **Shared Dependencies**: PostgreSQL (database) and Redis (cache)
-
-All applications are deployed using Docker Hub images and managed through GitOps principles.
+A simple ArgoCD App of Apps pattern example: Gitea + PostgreSQL stack with Ingress.
 
 ## 🏗️ Architecture
 
-### App of Apps Pattern
-
-1. **Root Application** (`root-application.yaml`)
-   - Manually applied to ArgoCD
-   - Manages all child applications in `apps/applications/` folder
-   - Each child application file creates an ArgoCD Application object
-
-2. **Child Applications** (`apps/applications/*.yml`)
-   - Each file defines a child Application object
-   - Points to its own manifest folder
-   - Deploys the actual applications
-
-3. **Manifests** (`apps/manifests/*/`)
-   - Kubernetes manifest files for each application
-   - Deployment, Service, ConfigMap, etc.
-
-### System Architecture
+This project demonstrates the **App of Apps** pattern with a production-ready setup:
 
 ```
-┌─────────────┐     ┌─────────────┐
-│   Ghost     │     │   Gitea     │
-│  (Blog)     │     │ (Git Host)  │
-│ Port: 30080 │     │ Port: 30081 │
-└──────┬──────┘     └──────┬──────┘
-       │                   │
-       ├───────────┬───────┤
-       │           │       │
-┌──────▼──────┐ ┌─▼───────▼──┐
-│ PostgreSQL  │ │   Redis     │
-│ (Database)  │ │  (Cache)    │
-│ Port: 5432  │ │ Port: 6379  │
-└─────────────┘ └─────────────┘
+┌─────────────────────────────────────┐
+│      Root Application              │
+│    (root-application.yaml)         │
+└──────────────┬──────────────────────┘
+               │
+       ┌───────┴────────┐
+       │                │
+┌──────▼──────┐  ┌──────▼──────────┐
+│ PostgreSQL  │  │     Gitea       │
+│   (DB)      │  │  (Git Server)   │
+└─────────────┘  └──────┬──────────┘
+                        │
+                   ┌────▼──────┐
+                   │  Ingress  │
+                   │ (Routing) │
+                   └───────────┘
 ```
+
+## 📦 Applications
+
+### PostgreSQL
+- **Namespace:** `postgresql`
+- **Purpose:** Database for Gitea
+- **Port:** 5432 (ClusterIP - internal only)
+
+### Gitea
+- **Namespace:** `gitea`
+- **Purpose:** Git hosting service
+- **Port:** 3000 (HTTP) - Accessible via Ingress
+- **SSH Port:** 22
+- **Dependency:** PostgreSQL (waits via init container)
+
+### Podinfo
+- **Namespace:** `podinfo`
+- **Purpose:** Demo web application (health, UI, metrics)
+- **Port:** 80 (ClusterIP) - Accessible via Ingress
+- **Dependency:** None (stateless)
+- **Ingress Path:** `http://localhost:3000/podinfo`
+
+### Ingress
+- **Namespace:** `gitea`
+- **Purpose:** Route traffic to Gitea
+- **Access:** `http://localhost:3000`
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Kubernetes cluster
+- ArgoCD installed
+- `kubectl` configured
+
+### Installation
+
+#### Step 1: Install Ingress Controller (One-time Manual Step)
+
+The Ingress Controller is a cluster-level component that needs to be installed once:
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+```
+
+**Why manual?**
+- Ingress Controller is a cluster-level component
+- Installed once, rarely changes
+- Shared by all applications
+
+Wait for the controller to be ready:
+```bash
+kubectl wait --namespace ingress-nginx \
+  --for=condition=ready pod \
+  --selector=app.kubernetes.io/component=controller \
+  --timeout=300s
+```
+
+#### Step 2: Configure Ingress Controller Service (For Local Access)
+
+Configure the Ingress Controller service to use NodePort for local access:
+
+```bash
+kubectl edit svc ingress-nginx-controller -n ingress-nginx
+```
+
+Change:
+```yaml
+type: LoadBalancer  →  type: NodePort
+```
+
+Add to ports section:
+```yaml
+ports:
+- port: 80
+  targetPort: 80
+  nodePort: 3000  # ← Add this
+  protocol: TCP
+  name: http
+```
+
+#### Step 3: Apply Root Application
+
+```bash
+kubectl apply -f root-application.yaml
+```
+
+**ArgoCD will automatically:**
+- ✅ Create all child applications
+- ✅ Deploy PostgreSQL
+- ✅ Deploy Gitea (after PostgreSQL is ready)
+- ✅ Deploy Ingress resources
+- ✅ Handle dependencies via init containers
+- ✅ Create all necessary namespaces
+
+#### Step 4: Verify Installation
+
+```bash
+# Check applications
+kubectl get applications -n argocd
+
+# Check pods
+kubectl get pods -n postgresql
+kubectl get pods -n gitea
+
+# Check ingress
+kubectl get ingress -n gitea
+
+# Check ingress controller
+kubectl get pods -n ingress-nginx
+```
+
+#### Step 5: Access Gitea
+
+- **Web UI:** `http://localhost:3000`
+- First-time setup will prompt you to create an admin user
+- **Podinfo UI:** `http://localhost:3000/podinfo`
 
 ## 📁 Project Structure
 
 ```
 app-of-apps-argocd/
-├── root-application.yaml          # Root (parent) application - manually applied to ArgoCD
+├── root-application.yaml           # Root app - manually applied
 ├── apps/
-│   ├── applications/              # Child application YAML files (ArgoCD Application objects)
-│   │   ├── ghost-app.yml         # Ghost blog platform
-│   │   ├── gitea-app.yml         # Gitea git hosting
-│   │   ├── postgresql-app.yml    # PostgreSQL database (shared)
-│   │   └── redis-app.yml         # Redis cache (shared)
+│   ├── applications/               # Child ArgoCD Applications
+│   │   ├── postgresql-app.yml
+│   │   ├── gitea-app.yml
+│   │   └── ingress-app.yml
 │   │
-│   └── manifests/                 # Manifest folders for all applications
-│       ├── ghost/                 # Ghost manifests
-│       │   ├── deployment.yml
-│       │   └── service.yml
-│       ├── gitea/                 # Gitea manifests
-│       │   ├── deployment.yml
-│       │   └── service.yml
-│       ├── postgresql/            # PostgreSQL manifests
+│   └── manifests/                  # Kubernetes manifests
+│       ├── postgresql/
 │       │   ├── deployment.yml
 │       │   ├── service.yml
-│       │   └── configmap.yml     # Init script for multiple databases
-│       └── redis/                 # Redis manifests
-│           ├── deployment.yml
-│           └── service.yml
+│       │   └── configmap.yml
+│       ├── gitea/
+│       │   ├── deployment.yml
+│       │   ├── service.yml
+│       │   └── configmap.yml
+│       ├── podinfo/
+│       │   ├── deployment.yml
+│       │   └── service.yml
+│       └── ingress/
+│           ├── gitea-ingress.yml
+│           └── podinfo-ingress.yml
 ```
 
-## 📱 Applications
+## 🔍 Features
 
-### Ghost (Blog Platform)
+### App of Apps Pattern
+- **Root Application** manages all child applications
+- Each child application is independent but coordinated
+- Automated sync (`prune` and `selfHeal` enabled)
 
-- **Namespace:** `ghost`
-- **Port:** 2368 (NodePort: 30080)
-- **Image:** `ghost:latest`
-- **Access:** `http://localhost:30080`
-- **Dependencies:**
-  - PostgreSQL (database: `ghost`)
-  - Redis (cache)
+### Dependency Management
+- **Gitea** waits for PostgreSQL via init container
+- Service discovery for automatic connection
 
-### Gitea (Git Hosting)
+### Ingress Integration
+- **Ingress** routes traffic to Gitea
+- Clean URLs via Ingress Controller
+- Ready for SSL/TLS configuration
 
-- **Namespace:** `gitea`
-- **Port:** 3000 (NodePort: 30081)
-- **Image:** `gitea/gitea:latest`
-- **Access:** `http://localhost:30081`
-- **Dependencies:**
-  - PostgreSQL (database: `gitea`)
-  - Redis (cache)
+### Simple and Understandable
+- Minimal configuration
+- Easy to get started
+- Adaptable for production
 
-## 🔗 Dependencies
+## 🛠️ Verification
 
-### PostgreSQL (Shared Database)
-
-- **Namespace:** `postgres`
-- **Port:** 5432
-- **Image:** `postgres:alpine`
-- **Databases:**
-  - `ghost` - Used by Ghost
-  - `gitea` - Used by Gitea
-- **Configuration:**
-  - Init script in ConfigMap creates all databases automatically
-  - Access: `postgres.postgres.svc.cluster.local:5432`
-
-### Redis (Shared Cache)
-
-- **Namespace:** `redis`
-- **Port:** 6379
-- **Image:** `redis:alpine`
-- **Used by:**
-  - Ghost (cache)
-  - Gitea (cache)
-- **Access:** `redis.redis.svc.cluster.local:6379`
-
-## 🚀 Installation
-
-### Prerequisites
-
-- Kubernetes cluster
-- ArgoCD installed and running
-- Git repository access
-- `kubectl` configured
-
-### Steps
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/onurglr/app-of-apps-argocd.git
-   cd app-of-apps-argocd
-   ```
-
-2. **Apply the root application to ArgoCD:**
-   ```bash
-   kubectl apply -f root-application.yaml
-   ```
-
-3. **ArgoCD will automatically:**
-   - Read all child applications from `apps/applications/` folder
-   - Deploy each one
-   - Read manifest files and start the applications
-   - Create namespaces if needed
-
-## 📖 Usage
-
-### Access Applications
-
-- **Ghost:** `http://localhost:30080`
-- **Gitea:** `http://localhost:30081`
-
-### Check Application Status
-
+### Check Applications
 ```bash
-# List all applications
+# List all ArgoCD applications
 kubectl get applications -n argocd
 
 # Check specific application
-kubectl get application ghost-app -n argocd
+kubectl get application postgresql-app -n argocd
 kubectl get application gitea-app -n argocd
+kubectl get application ingress-app -n argocd
 
-# Check pods
-kubectl get pods -n ghost
-kubectl get pods -n gitea
-kubectl get pods -n postgres
-kubectl get pods -n redis
+# View application status
+kubectl describe application gitea-app -n argocd
 ```
 
-### View Logs
-
+### Check Pods
 ```bash
-# Ghost logs
-kubectl logs -n ghost -l app=ghost
+# PostgreSQL
+kubectl get pods -n postgresql
+kubectl logs -n postgresql -l app=postgresql
 
-# Gitea logs
+# Gitea
+kubectl get pods -n gitea
 kubectl logs -n gitea -l app=gitea
 
-# PostgreSQL logs
-kubectl logs -n postgres -l app=postgres
+# Podinfo
+kubectl get pods -n podinfo
+kubectl logs -n podinfo -l app=podinfo
 
-# Redis logs
-kubectl logs -n redis -l app=redis
+# Ingress Controller
+kubectl get pods -n ingress-nginx
 ```
 
-## ➕ Adding New Applications
-
-To add a new application that uses PostgreSQL:
-
-1. **Add database to ConfigMap:**
-   ```yaml
-   # apps/manifests/postgresql/configmap.yml
-   CREATE DATABASE new-app;
-   ```
-
-2. **Create child application:**
-   ```yaml
-   # apps/applications/new-app.yml
-   apiVersion: argoproj.io/v1alpha1
-   kind: Application
-   metadata:
-     name: new-app
-     namespace: argocd
-   spec:
-     project: default
-     source:
-       repoURL: https://github.com/onurglr/app-of-apps-argocd.git
-       targetRevision: HEAD
-       path: apps/manifests/new-app
-     destination:
-       server: https://kubernetes.default.svc
-       namespace: new-app
-     syncPolicy:
-       automated:
-         prune: true
-         selfHeal: true
-       syncOptions:
-         - CreateNamespace=true
-   ```
-
-3. **Create manifest files:**
-   - `apps/manifests/new-app/deployment.yml`
-   - `apps/manifests/new-app/service.yml`
-
-4. **Add PostgreSQL connection in deployment:**
-   ```yaml
-   env:
-   - name: DATABASE_HOST
-     value: postgres.postgres.svc.cluster.local
-   - name: DATABASE_PORT
-     value: "5432"
-   - name: DATABASE_NAME
-     value: "new-app"
-   ```
-
-5. **Commit and push:**
-   ```bash
-   git add .
-   git commit -m "Add new-app"
-   git push
-   ```
-
-6. **ArgoCD will automatically deploy!**
-
-## 🔍 Verification
-
-### Via ArgoCD UI
-
-1. Navigate to ArgoCD UI
-2. View the root application (`root-app`)
-3. Check child applications and their status
-4. Verify all applications are "Healthy" and "Synced"
-
-### Via kubectl
-
+### Check Services
 ```bash
-# Check all applications
-kubectl get applications -n argocd
+# PostgreSQL service
+kubectl get svc -n postgresql
 
-# Check application details
-kubectl describe application ghost-app -n argocd
+# Gitea service
+kubectl get svc -n gitea
 
-# Check services
-kubectl get svc -A
+# Podinfo service
+kubectl get svc -n podinfo
 
-# Check all pods
-kubectl get pods -A
+# Ingress Controller service
+kubectl get svc -n ingress-nginx
+```
+
+### Check Ingress
+```bash
+# Ingress resources
+kubectl get ingress --all-namespaces
+
+# Detailed ingress info
+kubectl describe ingress gitea-ingress -n gitea
+kubectl describe ingress podinfo-ingress -n podinfo
 ```
 
 ## 🔧 Troubleshooting
 
-### Application not syncing
-
+### Gitea not accessible
 ```bash
-# Check application status
-kubectl get application <app-name> -n argocd
+# Check Gitea pod
+kubectl get pods -n gitea
+kubectl logs -n gitea -l app=gitea
 
-# Manually sync
-argocd app sync <app-name>
+# Check service
+kubectl get svc -n gitea
 
-# Check logs
-kubectl logs -n argocd -l app.kubernetes.io/name=argocd-application-controller
+# Check ingress
+kubectl get ingress -n gitea
+kubectl describe ingress gitea-ingress -n gitea
+
+# Check ingress controller
+kubectl get pods -n ingress-nginx
+kubectl logs -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx
 ```
 
 ### Database connection issues
-
 ```bash
 # Check PostgreSQL pod
-kubectl get pods -n postgres
+kubectl get pods -n postgresql
+kubectl logs -n postgresql -l app=postgresql
 
-# Check PostgreSQL logs
-kubectl logs -n postgres -l app=postgres
-
-# Test connection from Ghost pod
-kubectl exec -it -n ghost <ghost-pod-name> -- sh
-# Inside pod: ping postgres.postgres.svc.cluster.local
+# Test connection
+kubectl exec -it -n postgresql <postgresql-pod> -- psql -U gitea -d gitea
 ```
 
-### Service not accessible
+### Init container waiting
+### Podinfo not accessible
+```bash
+# Check Podinfo pod
+kubectl get pods -n podinfo
+kubectl logs -n podinfo -l app=podinfo
+
+# Check Podinfo ingress
+kubectl describe ingress podinfo-ingress -n podinfo
+```
 
 ```bash
-# Check service
-kubectl get svc -n <namespace>
+# Check Gitea init container logs
+kubectl logs -n gitea <gitea-pod> -c wait-for-postgres
 
-# Check NodePort
-kubectl get svc <service-name> -n <namespace> -o yaml
-
-# Check pods
-kubectl get pods -n <namespace>
+# Verify PostgreSQL is ready
+kubectl get pods -n postgresql
 ```
 
-## 📚 Learning Resources
+### Ingress Controller not working
+```bash
+# Check if Ingress Controller is installed
+kubectl get pods -n ingress-nginx
 
-This project was created for educational purposes. Each file contains detailed comments explaining:
-- What each field does
-- Why specific values were chosen
-- Alternatives and when to use different values
+# If not installed, run Step 1 from Quick Start
+
+# Check Ingress Controller logs
+kubectl logs -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx
+
+# Check Ingress Controller service
+kubectl get svc -n ingress-nginx
+```
+
+### Applications not syncing
+```bash
+# Check ArgoCD applications
+kubectl get applications -n argocd
+
+# Check application details
+kubectl describe application gitea-app -n argocd
+
+# Check ArgoCD server logs
+kubectl logs -n argocd -l app.kubernetes.io/name=argocd-server
+```
+
+## 📚 Learning Points
+
+This project demonstrates:
+- ✅ ArgoCD App of Apps pattern
+- ✅ Inter-application dependency management
+- ✅ Init container for dependency waiting
+- ✅ Kubernetes service discovery
+- ✅ Managing multiple applications (PostgreSQL, Gitea, Podinfo) with a single root app
+- ✅ Ingress for external access
+- ✅ Simple and understandable structure
+
+## 🔐 Accessing PostgreSQL (Development)
+
+PostgreSQL is only accessible from within the cluster. For external access during development:
+
+### Option 1: Port Forward (Recommended)
+```bash
+kubectl port-forward -n postgresql svc/postgresql 5432:5432
+# Access via: localhost:5432
+```
+
+### Option 2: NodePort (Not recommended for production)
+Modify `apps/manifests/postgresql/service.yml` to use NodePort type.
+
+**For production:** Use VPN/Private Network - database should remain internal.
+
+## 📝 Summary
+
+### Installation Steps:
+1. **Install Ingress Controller** (manual, one-time) ← ONLY MANUAL STEP
+2. **Apply root-application.yaml** (ArgoCD manages everything)
+3. **Done!** 🎉
+
+### What ArgoCD Manages:
+- ✅ All applications (PostgreSQL, Gitea, Ingress)
+- ✅ All namespaces
+- ✅ All deployments and services
+- ✅ Configuration via ConfigMaps
+- ✅ Automatic synchronization
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
 5. Open a Pull Request
 
 ## 📝 License
 
 This project is for educational purposes.
-
-## 🔗 Links
-
-- [ArgoCD Documentation](https://argo-cd.readthedocs.io/)
-- [Kubernetes Documentation](https://kubernetes.io/docs/)
-- [Ghost Documentation](https://ghost.org/docs/)
-- [Gitea Documentation](https://docs.gitea.io/)

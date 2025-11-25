@@ -1,21 +1,48 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: gitea-init
+  name: gitea-config
   namespace: gitea
 data:
+  app.ini: |
+    APP_NAME = Gitea: Git with a cup of tea
+    RUN_MODE = prod
+
+    [database]
+    DB_TYPE = postgres
+    HOST = postgresql.postgresql.svc.cluster.local:5432
+    NAME = gitea
+    USER = gitea
+    PASSWD = gitea
+
+    [server]
+    DOMAIN = localhost
+    SSH_DOMAIN = localhost
+    HTTP_PORT = 3000
+    ROOT_URL = http://localhost:3000/
+    DISABLE_SSH = false
+    SSH_PORT = 22
+
+    [repository]
+    ROOT = /data/git/repositories
+
+    [session]
+    PROVIDER = file
+
+    [log]
+    MODE = console
+    LEVEL = Info
+  
+  # Environment variables
+  USER_UID: "1000"
+  USER_GID: "1000"
+  
+  # Init container script
   wait-for-postgres.sh: |
     #!/bin/sh
-    until pg_isready -h postgres.postgres.svc.cluster.local -p 5432 -U postgres; do
+    until nc -z postgresql.postgresql.svc.cluster.local 5432; do
       echo "Waiting for PostgreSQL..."
       sleep 2
     done
     echo "PostgreSQL is ready!"
-  wait-for-redis.sh: |
-    #!/bin/sh
-    until redis-cli -h redis.redis.svc.cluster.local -p 6379 ping; do
-      echo "Waiting for Redis..."
-      sleep 2
-    done
-    echo "Redis is ready!"
 

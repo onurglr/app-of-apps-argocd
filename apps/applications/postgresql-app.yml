@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: postgres-app
+  name: postgresql-app
   namespace: argocd
 spec:
   project: default
@@ -11,10 +11,11 @@ spec:
     path: apps/manifests/postgresql
   destination:
     server: https://kubernetes.default.svc
-    namespace: postgres
+    namespace: postgresql
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+

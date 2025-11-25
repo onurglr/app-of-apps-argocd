@@ -3,12 +3,19 @@ kind: Service
 metadata:
   name: gitea
   namespace: gitea
-spec:
-  selector:
+  labels:
     app: gitea
+spec:
+  type: ClusterIP
   ports:
   - port: 3000
     targetPort: 3000
-    nodePort: 30081
-  type: NodePort
+    protocol: TCP
+    name: http
+  - port: 22
+    targetPort: 22
+    protocol: TCP
+    name: ssh
+  selector:
+    app: gitea
 

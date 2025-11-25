@@ -1,17 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: redis-app
+  name: ingress-app
   namespace: argocd
 spec:
   project: default
   source:
     repoURL: https://github.com/onurglr/app-of-apps-argocd.git
     targetRevision: HEAD
-    path: apps/manifests/redis
+    path: apps/manifests/ingress
   destination:
     server: https://kubernetes.default.svc
-    namespace: redis
+    namespace: default
   syncPolicy:
     automated:
       prune: true

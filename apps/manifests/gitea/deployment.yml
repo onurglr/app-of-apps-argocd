@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: gitea
   namespace: gitea
+  labels:
+    app: gitea
 spec:
   replicas: 1
   selector:
@@ -15,56 +17,54 @@ spec:
     spec:
       initContainers:
       - name: wait-for-postgres
-        image: postgres:alpine
-        command: ["/bin/sh", "/scripts/wait-for-postgres.sh"]
+        image: busybox:1.35
+        command: ['sh', '/scripts/wait-for-postgres.sh']
         volumeMounts:
-        - name: init-scripts
-          mountPath: /scripts
-      - name: wait-for-redis
-        image: redis:alpine
-        command: ["/bin/sh", "/scripts/wait-for-redis.sh"]
-        volumeMounts:
-        - name: init-scripts
+        - name: scripts
           mountPath: /scripts
       containers:
       - name: gitea
         image: gitea/gitea:latest
         ports:
         - containerPort: 3000
-        env:
-        # PostgreSQL Database Configuration
-        - name: GITEA__database__DB_TYPE
-          value: "postgres"
-        - name: GITEA__database__HOST
-          value: postgres.postgres.svc.cluster.local:5432
-        - name: GITEA__database__NAME
-          value: "gitea"
-        - name: GITEA__database__USER
-          value: "postgres"
-        - name: GITEA__database__PASSWD
-          value: "postgres"
-        # Redis Cache Configuration
-        - name: GITEA__cache__ENABLED
-          value: "true"
-        - name: GITEA__cache__ADAPTER
-          value: "redis"
-        - name: GITEA__cache__HOST
-          value: redis.redis.svc.cluster.local:6379
-        # Gitea Server Configuration
-        - name: GITEA__server__PROTOCOL
-          value: "http"
-        - name: GITEA__server__DOMAIN
-          value: "localhost"
-        - name: GITEA__server__HTTP_PORT
-          value: "3000"
-        - name: GITEA__server__ROOT_URL
-          value: "http://localhost:3000"
-        # Gitea App Configuration
-        - name: GITEA__app__INSTALL_LOCK
-          value: "true"
+          name: http
+        - containerPort: 22
+          name: ssh
+        envFrom:
+        - configMapRef:
+            name: gitea-config
+        volumeMounts:
+        - name: gitea-data
+          mountPath: /data
+        - name: gitea-config
+          mountPath: /etc/gitea
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /api/healthz
+            port: 3000
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/healthz
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 5
       volumes:
-      - name: init-scripts
+      - name: gitea-data
+        emptyDir: {}
+      - name: gitea-config
         configMap:
-          name: gitea-init
+          name: gitea-config
+      - name: scripts
+        configMap:
+          name: gitea-config
           defaultMode: 0755
 
