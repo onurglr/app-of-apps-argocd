@@ -6,6 +6,7 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    argocd.argoproj.io/external-uri: http://localhost:30080/podinfo
 spec:
   ingressClassName: nginx
   rules:
