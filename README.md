@@ -35,21 +35,21 @@ This project demonstrates the **App of Apps** pattern with a production-ready se
 ### Gitea
 - **Namespace:** `gitea`
 - **Purpose:** Git hosting service
-- **Port:** 3000 (HTTP) - Accessible via Ingress
+- **Port:** 3000 (HTTP) - Accessible via Ingress (NodePort 30080)
 - **SSH Port:** 22
 - **Dependency:** PostgreSQL (waits via init container)
 
 ### Podinfo
 - **Namespace:** `podinfo`
 - **Purpose:** Demo web application (health, UI, metrics)
-- **Port:** 80 (ClusterIP) - Accessible via Ingress
+- **Port:** 80 (ClusterIP) - Accessible via Ingress (NodePort 30080)
 - **Dependency:** None (stateless)
-- **Ingress Path:** `http://localhost:3000/podinfo`
+- **Ingress Path:** `http://localhost:30080/podinfo`
 
 ### Ingress
 - **Namespace:** `gitea`
 - **Purpose:** Route traffic to Gitea
-- **Access:** `http://localhost:3000`
+- **Access:** `http://localhost:30080`
 
 ## 🚀 Quick Start
 
@@ -94,12 +94,12 @@ Change:
 type: LoadBalancer  →  type: NodePort
 ```
 
-Add to ports section:
+Add to ports section (any NodePort in the valid 30000–32767 range works; example below uses 30080):
 ```yaml
 ports:
 - port: 80
   targetPort: 80
-  nodePort: 3000  # ← Add this
+  nodePort: 30080  # ← Add this
   protocol: TCP
   name: http
 ```
@@ -137,9 +137,9 @@ kubectl get pods -n ingress-nginx
 
 #### Step 5: Access Gitea
 
-- **Web UI:** `http://localhost:3000`
+- **Web UI:** `http://localhost:30080`
 - First-time setup will prompt you to create an admin user
-- **Podinfo UI:** `http://localhost:3000/podinfo`
+- **Podinfo UI:** `http://localhost:30080/podinfo`
 
 ## 📁 Project Structure
 
