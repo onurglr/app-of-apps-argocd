@@ -51,6 +51,7 @@ This project demonstrates the **App of Apps** pattern with a production-ready se
 - **Namespace:** `gitea`
 - **Purpose:** Route HTTP traffic to apps
 - **Access:** `http://gitea.localtest.me:30080` and `http://podinfo.localtest.me:30080`
+- **Having issues?** Check the [Troubleshooting Guide](#-common-issues)
 
 ## 🚀 Quick Start
 
@@ -337,6 +338,35 @@ This project demonstrates:
 - ✅ Managing multiple applications (PostgreSQL, Gitea, Podinfo) with a single root app
 - ✅ Ingress for external access
 - ✅ Simple and understandable structure
+
+## ⚠️ Common Issues
+
+### 1. `nodePort` out of range (3000)
+**Symptoms**
+- ArgoCD sync fails with `Invalid value: 3000; valid range 30000-32767`
+
+**Fix**
+- Update `apps/manifests/ingress/ingress-controller-service.yml` so `nodePort` values are within `30000-32767` (e.g., `30080` and `30443`)
+- Re-sync ArgoCD
+
+### 2. `nodePort` already allocated
+**Symptoms**
+- ArgoCD sync fails with `provided port is already allocated`
+
+**Fix**
+- Pick a different `nodePort` value (still within `30000-32767`) in both the manifest and the live service (`kubectl edit svc ingress-nginx-controller -n ingress-nginx`)
+
+### 3. Cannot reach `*.localtest.me:30080`
+**Symptoms**
+- Browser/curl shows connection errors even though ingress is synced
+
+**Fix**
+- NodePort listens on the Kubernetes node IP, not 127.0.0.1. Add the node IP to `/etc/hosts`, e.g.:
+  ```
+  192.168.49.2 gitea.localtest.me podinfo.localtest.me
+  ```
+- If you prefer using `localtest.me` without hosts edit, ensure your environment resolves it to the node IP (minikube/kind usually needs manual hosts entry)
+- After updating, verify with `ping gitea.localtest.me` and `curl -I http://gitea.localtest.me:30080`
 
 ## 🔐 Accessing PostgreSQL (Development)
 
