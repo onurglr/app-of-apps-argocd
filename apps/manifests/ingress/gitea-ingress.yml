@@ -6,11 +6,11 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    argocd.argoproj.io/external-uri: http://localhost:30080/
+    argocd.argoproj.io/external-uri: http://gitea.localtest.me:30080/
 spec:
   ingressClassName: nginx
   rules:
-  - host: localhost
+  - host: gitea.localtest.me
     http:
       paths:
       - path: /

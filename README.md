@@ -36,6 +36,7 @@ This project demonstrates the **App of Apps** pattern with a production-ready se
 - **Namespace:** `gitea`
 - **Purpose:** Git hosting service
 - **Port:** 3000 (HTTP) - Accessible via Ingress (NodePort 30080)
+- **Ingress Host:** `gitea.localtest.me`
 - **SSH Port:** 22
 - **Dependency:** PostgreSQL (waits via init container)
 
@@ -43,13 +44,13 @@ This project demonstrates the **App of Apps** pattern with a production-ready se
 - **Namespace:** `podinfo`
 - **Purpose:** Demo web application (health, UI, metrics)
 - **Port:** 80 (ClusterIP) - Accessible via Ingress (NodePort 30080)
+- **Ingress Host:** `podinfo.localtest.me`
 - **Dependency:** None (stateless)
-- **Ingress Path:** `http://localhost:30080/podinfo`
 
 ### Ingress
 - **Namespace:** `gitea`
-- **Purpose:** Route traffic to Gitea
-- **Access:** `http://localhost:30080`
+- **Purpose:** Route HTTP traffic to apps
+- **Access:** `http://gitea.localtest.me:30080` and `http://podinfo.localtest.me:30080`
 
 ## 🚀 Quick Start
 
@@ -135,11 +136,13 @@ kubectl get ingress -n gitea
 kubectl get pods -n ingress-nginx
 ```
 
-#### Step 5: Access Gitea
+#### Step 5: Access the apps
 
-- **Web UI:** `http://localhost:30080`
-- First-time setup will prompt you to create an admin user
-- **Podinfo UI:** `http://localhost:30080/podinfo`
+`localtest.me` automatically resolves to `127.0.0.1`, bu yüzden hosts dosyanıza giriş yapmanıza gerek yok.
+
+- **Gitea Web UI:** `http://gitea.localtest.me:30080`
+- **Podinfo UI:** `http://podinfo.localtest.me:30080`
+- First-time Gitea setup will prompt you to create an admin user
 
 ## 📁 Project Structure
 
