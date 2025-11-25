@@ -28,6 +28,10 @@ This project demonstrates the **App of Apps** pattern with a production-ready se
 ArgoCD surfaces each child application separately so you can inspect sync status per stack component.  
 ![ArgoCD Applications Overview](docs/screenshots/argocd-overview.png)
 
+Root application, child ArgoCD uygulamalarını (Gitea, PostgreSQL, Ingress ve Podinfo) nasıl yönettiğimizi görsel olarak özetler:
+
+![Root Application Graph](docs/screenshots/root-app.png)
+
 ## 📦 Applications
 
 ### PostgreSQL
@@ -55,6 +59,10 @@ ArgoCD surfaces each child application separately so you can inspect sync status
 - **Purpose:** Route HTTP traffic to apps
 - **Access:** `http://gitea.localtest.me:30080` and `http://podinfo.localtest.me:30080`
 - **Having issues?** Check the [Troubleshooting Guide](#-common-issues)
+
+ArgoCD'de bu ingress'ler tek bir `ingress-app` altında takip edilir:
+
+![Ingress Application Graph](docs/screenshots/Ingress-app.png)
 
 ## 🚀 Quick Start
 
