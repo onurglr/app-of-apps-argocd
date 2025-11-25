@@ -59,6 +59,12 @@ Each child application points to a different folder under `apps/manifests/`, whi
 - **Ingress Host:** `gitea.localtest.me`
 - **SSH Port:** 22
 - **Dependency:** PostgreSQL (waits via init container)
+- **First-time Setup:** When accessing Gitea for the first time, you'll see a setup page. Use these database credentials:
+  - **Database Type:** `PostgreSQL`
+  - **Host:** `postgresql.postgresql.svc.cluster.local:5432` (⚠️ not `localhost:3306`)
+  - **Username:** `gitea`
+  - **Password:** `gitea`
+  - **Database Name:** `gitea`
 
 ### Podinfo
 - **Namespace:** `podinfo`
@@ -170,7 +176,10 @@ If you are running on minikube/kind and NodePort is exposed on the node IP (e.g.
 
 - **Gitea Web UI:** `http://gitea.localtest.me:30080`
 - **Podinfo UI:** `http://podinfo.localtest.me:30080`
-- First-time Gitea setup will prompt you to create an admin user
+- **First-time Gitea setup:** When you first access Gitea, you'll see a setup page. Enter:
+  - **Database Host:** `postgresql.postgresql.svc.cluster.local:5432` (⚠️ use port 5432, not 3306)
+  - **Username:** `gitea`, **Password:** `gitea`, **Database Name:** `gitea`
+  - After setup, create your admin user
 
 > Ingress rewrites the host header, so her application feels like its own subdomain even though everything runs locally:
 
