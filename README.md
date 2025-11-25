@@ -71,7 +71,7 @@ Each child application points to a different folder under `apps/manifests/`, whi
 - **Namespace:** `gitea`
 - **Purpose:** Route HTTP traffic to app services via subdomains
 - **Access:** `http://gitea.localtest.me:30080` and `http://podinfo.localtest.me:30080`
-- **Having issues?** Check the [Troubleshooting Guide](#-common-issues)
+- **Having issues?** Check the [Troubleshooting Guide](#common-issues)
 
 Ingress resources are grouped under a dedicated `ingress-app` so ArgoCD can manage the controller service plus the individual ingress objects together. This view makes it obvious that:
 - `ingress-nginx-controller` (svc) exposes the NodePort.
