@@ -28,9 +28,22 @@ This project demonstrates the **App of Apps** pattern with a production-ready se
 ArgoCD surfaces each child application separately so you can inspect sync status per stack component.  
 ![ArgoCD Applications Overview](docs/screenshots/argocd-overview.png)
 
-Root application, child ArgoCD uygulamalarını (Gitea, PostgreSQL, Ingress ve Podinfo) nasıl yönettiğimizi görsel olarak özetler:
+The **root application** (`root-application.yaml`) is the single manifest you apply manually. It tracks the `apps/applications/` directory and instructs ArgoCD to create four child applications: PostgreSQL, Gitea, Podinfo, and Ingress. The root view in ArgoCD looks like this:
 
 ![Root Application Graph](docs/screenshots/root-app.png)
+
+Each child application points to a different folder under `apps/manifests/`, which keeps infrastructure concerns isolated while still enabling a single "bootstrap" command. This is the essence of the App of Apps pattern: **one manifest to rule many applications**.
+
+### Why App of Apps?
+- Bootstrap with a single command (`kubectl apply -f root-application.yaml`)
+- Delegate ownership: each manifest folder can evolve independently
+- Consistent ArgoCD RBAC/auditing per application
+- Easier rollbacks: you can roll back the root app or only one child app
+
+### Why Ingress with subdomains?
+- Clean URLs (`gitea.localtest.me`, `podinfo.localtest.me`) even on localhost
+- Path isolation: each ingress object enforces its own routing rules
+- Works with the same NodePort by relying on host headers
 
 ## 📦 Applications
 
@@ -56,11 +69,13 @@ Root application, child ArgoCD uygulamalarını (Gitea, PostgreSQL, Ingress ve P
 
 ### Ingress
 - **Namespace:** `gitea`
-- **Purpose:** Route HTTP traffic to apps
+- **Purpose:** Route HTTP traffic to app services via subdomains
 - **Access:** `http://gitea.localtest.me:30080` and `http://podinfo.localtest.me:30080`
 - **Having issues?** Check the [Troubleshooting Guide](#-common-issues)
 
-ArgoCD'de bu ingress'ler tek bir `ingress-app` altında takip edilir:
+Ingress resources are grouped under a dedicated `ingress-app` so ArgoCD can manage the controller service plus the individual ingress objects together. This view makes it obvious that:
+- `ingress-nginx-controller` (svc) exposes the NodePort.
+- `gitea-ingress` and `podinfo-ingress` are separate resources, each pointing at different services but managed as one logical unit.
 
 ![Ingress Application Graph](docs/screenshots/Ingress-app.png)
 
@@ -150,7 +165,8 @@ kubectl get pods -n ingress-nginx
 
 #### Step 5: Access the apps
 
-`localtest.me` automatically resolves to `127.0.0.1`, bu yüzden hosts dosyanıza giriş yapmanıza gerek yok.
+`localtest.me` automatically resolves to `127.0.0.1`, so you normally do not need to edit `/etc/hosts`.  
+If you are running on minikube/kind and NodePort is exposed on the node IP (e.g., `192.168.49.2`), add that IP to `/etc/hosts` instead.
 
 - **Gitea Web UI:** `http://gitea.localtest.me:30080`
 - **Podinfo UI:** `http://podinfo.localtest.me:30080`
