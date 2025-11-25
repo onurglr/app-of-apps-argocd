@@ -25,6 +25,9 @@ This project demonstrates the **App of Apps** pattern with a production-ready se
                    └───────────┘
 ```
 
+ArgoCD surfaces each child application separately so you can inspect sync status per stack component.  
+![ArgoCD Applications Overview](docs/screenshots/argocd-overview.png)
+
 ## 📦 Applications
 
 ### PostgreSQL
@@ -145,13 +148,11 @@ kubectl get pods -n ingress-nginx
 - **Podinfo UI:** `http://podinfo.localtest.me:30080`
 - First-time Gitea setup will prompt you to create an admin user
 
-## 📸 Screenshots
+> Ingress rewrites the host header, so her application feels like its own subdomain even though everything runs locally:
 
-![ArgoCD Applications](docs/screenshots/argocd-overview.png)
-
-![Gitea over Ingress](docs/screenshots/gitea-local.png)
-
-![Podinfo over Ingress](docs/screenshots/podinfo-local.png)
+| Gitea via Ingress | Podinfo via Ingress |
+| ----------------- | ------------------- |
+| ![Gitea over Ingress](docs/screenshots/gitea-local.png) | ![Podinfo over Ingress](docs/screenshots/podinfo-local.png) |
 
 ## 📁 Project Structure
 
