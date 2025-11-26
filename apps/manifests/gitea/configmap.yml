@@ -39,9 +39,8 @@ data:
   # Environment variables
   USER_UID: "1000"
   USER_GID: "1000"
-  GITEA_CUSTOM: "/etc/gitea"
   
-  # Init container script
+  # Init container scripts
   wait-for-postgres.sh: |
     #!/bin/sh
     until nc -z postgresql.postgresql.svc.cluster.local 5432; do
@@ -49,4 +48,16 @@ data:
       sleep 2
     done
     echo "PostgreSQL is ready!"
+  
+  setup-gitea-config.sh: |
+    #!/bin/sh
+    # Create Gitea config directory in PVC
+    mkdir -p /data/gitea/conf
+    # Copy app.ini from ConfigMap to PVC if it doesn't exist
+    if [ ! -f /data/gitea/conf/app.ini ]; then
+      cp /etc/gitea/app.ini /data/gitea/conf/app.ini
+      echo "Copied app.ini from ConfigMap to PVC"
+    else
+      echo "app.ini already exists in PVC"
+    fi
 

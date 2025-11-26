@@ -22,6 +22,17 @@ spec:
         volumeMounts:
         - name: scripts
           mountPath: /scripts
+      - name: setup-gitea-config
+        image: busybox:1.35
+        command: ['sh', '/scripts/setup-gitea-config.sh']
+        volumeMounts:
+        - name: gitea-data
+          mountPath: /data
+        - name: gitea-config
+          mountPath: /etc/gitea
+          readOnly: true
+        - name: scripts
+          mountPath: /scripts
       containers:
       - name: gitea
         image: gitea/gitea:latest
