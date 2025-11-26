@@ -53,24 +53,14 @@ data:
     #!/bin/sh
     # Create Gitea config directory in PVC
     mkdir -p /data/gitea/conf
-    # Copy app.ini from ConfigMap to PVC if it doesn't exist
+    # Only copy app.ini from ConfigMap to PVC if it doesn't exist
+    # This preserves INSTALL_LOCK and other settings after first installation
     if [ ! -f /data/gitea/conf/app.ini ]; then
       cp /etc/gitea/app.ini /data/gitea/conf/app.ini
-      echo "Copied app.ini from ConfigMap to PVC"
+      echo "Copied app.ini from ConfigMap to PVC (first time setup)"
     else
-      echo "app.ini already exists in PVC"
-      # If INSTALL_LOCK exists but database might be empty, remove it to allow migration
-      # This handles the case when PostgreSQL is recreated but Gitea data persists
-      if grep -q "INSTALL_LOCK = true" /data/gitea/conf/app.ini; then
-        # Check if database has tables (simple check via psql)
-        if ! nc -z postgresql.postgresql.svc.cluster.local 5432 2>/dev/null; then
-          echo "PostgreSQL not ready, skipping INSTALL_LOCK check"
-        else
-          # Remove INSTALL_LOCK to allow Gitea to run migrations if needed
-          sed -i '/INSTALL_LOCK = true/d' /data/gitea/conf/app.ini
-          sed -i '/\[security\]/d' /data/gitea/conf/app.ini
-          echo "Removed INSTALL_LOCK to allow database migration"
-        fi
-      fi
+      echo "app.ini already exists in PVC - preserving existing configuration (INSTALL_LOCK will be preserved)"
+      # Don't overwrite - Gitea has already configured itself
+      # INSTALL_LOCK = true means setup is complete, keep it!
     fi
 
