@@ -33,8 +33,8 @@ data:
     MODE = console
     LEVEL = Info
 
-    [security]
-    INSTALL_LOCK = true
+    # INSTALL_LOCK is set automatically by Gitea after first installation
+    # Removing it allows Gitea to run migrations on fresh database
   
   # Environment variables
   USER_UID: "1000"
@@ -59,5 +59,18 @@ data:
       echo "Copied app.ini from ConfigMap to PVC"
     else
       echo "app.ini already exists in PVC"
+      # If INSTALL_LOCK exists but database might be empty, remove it to allow migration
+      # This handles the case when PostgreSQL is recreated but Gitea data persists
+      if grep -q "INSTALL_LOCK = true" /data/gitea/conf/app.ini; then
+        # Check if database has tables (simple check via psql)
+        if ! nc -z postgresql.postgresql.svc.cluster.local 5432 2>/dev/null; then
+          echo "PostgreSQL not ready, skipping INSTALL_LOCK check"
+        else
+          # Remove INSTALL_LOCK to allow Gitea to run migrations if needed
+          sed -i '/INSTALL_LOCK = true/d' /data/gitea/conf/app.ini
+          sed -i '/\[security\]/d' /data/gitea/conf/app.ini
+          echo "Removed INSTALL_LOCK to allow database migration"
+        fi
+      fi
     fi
 
