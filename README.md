@@ -233,21 +233,24 @@ app-of-apps-argocd/
 │   │   ├── gitea-app.yml
 │   │   └── ingress-app.yml
 │   │
-│   └── manifests/                  # Kubernetes manifests
+│   └── manifests/                  # Kubernetes manifests (per app)
 │       ├── postgresql/
-│       │   ├── deployment.yml
-│       │   ├── service.yml
-│       │   └── configmap.yml
+│       │   ├── deployment.yml      # Deployment (uses PVC + health checks from ConfigMap)
+│       │   ├── service.yml         # ClusterIP service
+│       │   ├── pvc.yml             # PersistentVolumeClaim for DB data
+│       │   └── configmap.yml       # Env vars + reusable health-check script
 │       ├── gitea/
-│       │   ├── deployment.yml
-│       │   ├── service.yml
-│       │   └── configmap.yml
+│       │   ├── deployment.yml      # Deployment (init containers + PVC for /data)
+│       │   ├── service.yml         # ClusterIP service
+│       │   ├── pvc.yml             # PersistentVolumeClaim for Gitea data
+│       │   └── configmap.yml       # app.ini + helper scripts for init containers
 │       ├── podinfo/
-│       │   ├── deployment.yml
-│       │   └── service.yml
+│       │   ├── deployment.yml      # Simple demo deployment
+│       │   └── service.yml         # ClusterIP service
 │       └── ingress/
-│           ├── gitea-ingress.yml
-│           └── podinfo-ingress.yml
+│           ├── gitea-ingress.yml               # Ingress for Gitea (subdomain)
+│           ├── podinfo-ingress.yml             # Ingress for Podinfo (subdomain)
+│           └── ingress-controller-service.yml  # NodePort service for Nginx Ingress
 ```
 
 ## 🔍 Features
