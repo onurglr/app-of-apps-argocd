@@ -50,7 +50,8 @@ spec:
           periodSeconds: 5
       volumes:
       - name: postgresql-storage
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: postgresql-storage
       - name: postgresql-config
         configMap:
           name: postgresql-config

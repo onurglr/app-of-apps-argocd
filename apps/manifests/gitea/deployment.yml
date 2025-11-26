@@ -59,7 +59,8 @@ spec:
           periodSeconds: 5
       volumes:
       - name: gitea-data
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: gitea-data
       - name: gitea-config
         configMap:
           name: gitea-config

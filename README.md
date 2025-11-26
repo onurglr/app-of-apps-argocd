@@ -51,6 +51,7 @@ Each child application points to a different folder under `apps/manifests/`, whi
 - **Namespace:** `postgresql`
 - **Purpose:** Database for Gitea
 - **Port:** 5432 (ClusterIP - internal only)
+- **Storage:** PersistentVolumeClaim (5Gi) - data persists across pod restarts
 
 ### Gitea
 - **Namespace:** `gitea`
@@ -59,6 +60,7 @@ Each child application points to a different folder under `apps/manifests/`, whi
 - **Ingress Host:** `gitea.localtest.me`
 - **SSH Port:** 22
 - **Dependency:** PostgreSQL (waits via init container)
+- **Storage:** PersistentVolumeClaim (10Gi) - repositories and config persist across pod restarts
 - **First-time Setup:** When accessing Gitea for the first time, you'll see a setup page. Use these database credentials:
   - **Database Type:** `PostgreSQL`
   - **Host:** `postgresql.postgresql.svc.cluster.local:5432` (⚠️ not `localhost:3306`)
@@ -296,6 +298,22 @@ kubectl describe ingress podinfo-ingress -n podinfo
 ```
 
 ## 🔧 Troubleshooting
+
+### PersistentVolume Issues
+
+If PVCs are not binding (stuck in `Pending` state), check your cluster's storage class:
+
+```bash
+# Check available storage classes
+kubectl get storageclass
+
+# If using minikube, default is usually "standard" or "hostpath"
+# Update PVC files if needed:
+# apps/manifests/postgresql/pvc.yml
+# apps/manifests/gitea/pvc.yml
+```
+
+**Note:** After adding PVCs, Gitea setup will persist across pod restarts. You only need to configure it once!
 
 ### Gitea not accessible
 ```bash
