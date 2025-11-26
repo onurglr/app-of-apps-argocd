@@ -32,10 +32,14 @@ data:
     [log]
     MODE = console
     LEVEL = Info
+
+    [security]
+    INSTALL_LOCK = true
   
   # Environment variables
   USER_UID: "1000"
   USER_GID: "1000"
+  GITEA_CUSTOM: "/etc/gitea"
   
   # Init container script
   wait-for-postgres.sh: |

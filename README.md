@@ -146,6 +146,37 @@ ports:
 kubectl apply -f root-application.yaml
 ```
 
+#### Step 4: Configure GitHub Webhook (Optional - For Instant Sync)
+
+By default, ArgoCD polls the Git repository every 3 minutes. For instant synchronization when you push changes, configure a GitHub webhook:
+
+**Get ArgoCD Webhook URL:**
+```bash
+# Get ArgoCD server URL
+kubectl get svc -n argocd argocd-server
+
+# If using port-forward:
+kubectl port-forward -n argocd svc/argocd-server 8080:443
+
+# Webhook URL will be:
+# http://localhost:8080/api/webhook (for local)
+# https://your-argocd-domain/api/webhook (for production)
+```
+
+**Add Webhook in GitHub:**
+1. Go to your repository: `https://github.com/onurglr/app-of-apps-argocd`
+2. Settings → Webhooks → Add webhook
+3. **Payload URL:** `https://your-argocd-domain/api/webhook` (or `http://localhost:8080/api/webhook` if using port-forward)
+4. **Content type:** `application/json`
+5. **Events:** Select "Just the push event"
+6. **Active:** ✓
+7. Click "Add webhook"
+
+**Alternative: Manual Refresh**
+If webhook is not configured, ArgoCD will automatically detect changes within 3 minutes. You can also manually refresh:
+- In ArgoCD UI: Click "REFRESH" button on the application
+- Via CLI: `argocd app get root-app --refresh`
+
 **ArgoCD will automatically:**
 - ✅ Create all child applications
 - ✅ Deploy PostgreSQL
@@ -154,7 +185,38 @@ kubectl apply -f root-application.yaml
 - ✅ Handle dependencies via init containers
 - ✅ Create all necessary namespaces
 
-#### Step 4: Verify Installation
+#### Step 4: Configure GitHub Webhook (Optional - For Instant Sync)
+
+By default, ArgoCD polls the Git repository every 3 minutes. For instant synchronization when you push changes, configure a GitHub webhook:
+
+**Get ArgoCD Webhook URL:**
+```bash
+# Get ArgoCD server URL
+kubectl get svc -n argocd argocd-server
+
+# If using port-forward:
+kubectl port-forward -n argocd svc/argocd-server 8080:443
+
+# Webhook URL will be:
+# http://localhost:8080/api/webhook (for local)
+# https://your-argocd-domain/api/webhook (for production)
+```
+
+**Add Webhook in GitHub:**
+1. Go to your repository: `https://github.com/onurglr/app-of-apps-argocd`
+2. Settings → Webhooks → Add webhook
+3. **Payload URL:** `https://your-argocd-domain/api/webhook` (or `http://localhost:8080/api/webhook` if using port-forward)
+4. **Content type:** `application/json`
+5. **Events:** Select "Just the push event"
+6. **Active:** ✓
+7. Click "Add webhook"
+
+**Alternative: Manual Refresh**
+If webhook is not configured, ArgoCD will automatically detect changes within 3 minutes. You can also manually refresh:
+- In ArgoCD UI: Click "REFRESH" button on the application
+- Via CLI: `argocd app get root-app --refresh`
+
+#### Step 5: Verify Installation
 
 ```bash
 # Check applications
@@ -171,7 +233,7 @@ kubectl get ingress -n gitea
 kubectl get pods -n ingress-nginx
 ```
 
-#### Step 5: Access the apps
+#### Step 6: Access the apps
 
 `localtest.me` automatically resolves to `127.0.0.1`, so you normally do not need to edit `/etc/hosts`.  
 If you are running on minikube/kind and NodePort is exposed on the node IP (e.g., `192.168.49.2`), add that IP to `/etc/hosts` instead.
