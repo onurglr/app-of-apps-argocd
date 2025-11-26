@@ -52,6 +52,7 @@ Each child application points to a different folder under `apps/manifests/`, whi
 - **Purpose:** Database for Gitea
 - **Port:** 5432 (ClusterIP - internal only)
 - **Storage:** PersistentVolumeClaim (5Gi) - data persists across pod restarts
+- **Init & Health:** ConfigMap-driven env + reusable `health-check.sh` keep liveness/readiness logic out of the manifest
 
 ### Gitea
 - **Namespace:** `gitea`
@@ -61,6 +62,7 @@ Each child application points to a different folder under `apps/manifests/`, whi
 - **SSH Port:** 22
 - **Dependency:** PostgreSQL (waits via init container)
 - **Storage:** PersistentVolumeClaim (10Gi) - repositories and config persist across pod restarts
+- **Automated config:** Init containers bootstrap `app.ini` from ConfigMap once and then preserve the PVC copy, so subsequent pod restarts skip the setup screen
 - **First-time Setup:** When accessing Gitea for the first time, you'll see a setup page. Use these database credentials:
   - **Database Type:** `PostgreSQL`
   - **Host:** `postgresql.postgresql.svc.cluster.local:5432` (⚠️ not `localhost:3306`)
