@@ -96,6 +96,11 @@ Ingress resources are grouped under a dedicated `ingress-app` so ArgoCD can mana
 - ArgoCD installed
 - `kubectl` configured
 
+This repo **does not** install a cluster or ArgoCD for you. You should already have:
+- A running Kubernetes cluster (kind, minikube, k3s, or a managed cluster)
+- ArgoCD installed in the cluster and reachable from your browser
+- `kubectl` pointing to the same cluster (so `kubectl get pods -n argocd` works)
+
 ### Installation
 
 #### Step 1: Install Ingress Controller (One-time Manual Step)
